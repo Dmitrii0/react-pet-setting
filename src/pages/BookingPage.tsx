@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
-import { addBooking } from '../store/slices/bookingsSlice';
+import { addBookingToFirebase } from '../store/slices/bookingsSlice';
 import { setSelectedService } from '../store/slices/servicesSlice';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -196,7 +196,7 @@ const BookingPage: React.FC = () => {
       createdAt: new Date().toISOString()
     };
 
-    dispatch(addBooking(booking));
+    dispatch(addBookingToFirebase(booking));
     alert('Varaus lähetetty onnistuneesti! Otamme yhteyttä sinuun pian.');
     
     // Reset form
