@@ -354,12 +354,20 @@ Tämä projekti on lisensoitu MIT-lisenssillä. Katso `LICENSE`-tiedosto lisäti
 
 Современное React приложение для сервиса ухода за домашними животными в Хельсинки, Эспоо и Вантаа.
 
-## 🚀 Демо
+## 🚀 Demo
 
 **Live Demo:** [https://react-pet-setting.vercel.app](https://react-pet-setting.vercel.app)
 
-## 📱 Функциональность
+## 📱 Functionality
 
+### ✅ Implemented (English)
+- **🏠 Home page with hero section and service previews
+- **📋 Services catalog with 6 different services
+- **📅 Booking form with date selection and automatic price calculation
+- **ℹ️ About us with information about the founders
+- **📱 Responsive design for all devices
+- **🔄 Redux state for data management
+- **🎨 Modern UI/UX with animations
 ### ✅ Реализовано
 - **🏠 Главная страница** с hero секцией и превью услуг
 - **📋 Каталог услуг** с 6 различными сервисами
