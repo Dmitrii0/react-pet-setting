@@ -5,6 +5,8 @@ import { addBookingToFirebase } from '../store/slices/bookingsSlice';
 import { setSelectedService } from '../store/slices/servicesSlice';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 const BookingContainer = styled.div`
   min-height: 100vh;
@@ -170,6 +172,25 @@ const BookingPage: React.FC = () => {
   };
 
   const totalPrice = calculatePrice();
+
+  // Тестовая функция для проверки Firebase
+  const testFirebase = async () => {
+    try {
+      console.log("🔥 Тестируем Firebase...");
+      const docRef = await addDoc(collection(db, "bookings"), {
+        name: "Dmitrii",
+        email: "stepanov@gmail.com",
+        phone: "11",
+        testData: true,
+        createdAt: new Date().toISOString()
+      });
+      console.log("✅ Тест успешен! Document ID:", docRef.id);
+      alert("✅ Firebase тест успешен! Проверьте консоль.");
+    } catch (error) {
+      console.error("❌ Ошибка Firebase:", error);
+      alert("❌ Ошибка Firebase: " + error);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,9 +487,27 @@ const BookingPage: React.FC = () => {
                 />
               </FormGroup>
               
-              <SubmitButton type="submit">
-                Varaa Palvelu
-              </SubmitButton>
+                  <SubmitButton type="submit">
+                    Varaa Palvelu
+                  </SubmitButton>
+                  
+                  {/* Тестовая кнопка для Firebase */}
+                  <button 
+                    type="button" 
+                    onClick={testFirebase}
+                    style={{
+                      background: '#ff6b6b',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      marginTop: '10px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    🔥 Тест Firebase
+                  </button>
             </form>
           </BookingForm>
         </BookingContent>
