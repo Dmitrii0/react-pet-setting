@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { sendBookingNotification } from '../services/emailService';
 
 const BookingContainer = styled.div`
   min-height: 100vh;
@@ -192,7 +193,7 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedService) {
@@ -215,7 +216,28 @@ const BookingPage: React.FC = () => {
       status: 'pending' as const,
     };
 
+    // Сохраняем в Firebase
     dispatch(addBookingToFirebase(bookingData) as any);
+    
+    // Отправляем email уведомление владельцу сайта
+    try {
+      await sendBookingNotification({
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        petName: formData.petName,
+        petType: formData.petType,
+        serviceName: selectedService.name,
+        date: formData.startDate,
+        time: formData.time,
+        price: totalPrice,
+        message: formData.message,
+      });
+      console.log('✅ Email notification sent to owner');
+    } catch (error) {
+      console.error('❌ Failed to send email notification:', error);
+    }
+    
     alert('Varaus lähetetty onnistuneesti! Otamme yhteyttä sinuun pian.');
     
     // Reset form

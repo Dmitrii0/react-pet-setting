@@ -4,6 +4,7 @@
   "description": "We Pet Care - React Application",
   "private": true,
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@reduxjs/toolkit": "^2.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
