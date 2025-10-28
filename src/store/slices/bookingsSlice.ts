@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { collection, addDoc, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, addDoc, getDocs, orderBy, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 export interface Booking {
@@ -75,6 +75,32 @@ export const fetchBookingsFromFirebase = createAsyncThunk(
   }
 );
 
+// Async thunk для удаления бронирования из Firebase
+export const deleteBookingFromFirebase = createAsyncThunk(
+  'bookings/deleteBookingFromFirebase',
+  async (bookingId: string) => {
+    try {
+      await deleteDoc(doc(db, 'bookings', bookingId));
+      return bookingId;
+    } catch (error) {
+      throw new Error('Failed to delete booking from Firebase');
+    }
+  }
+);
+
+// Async thunk для обновления статуса бронирования в Firebase
+export const updateBookingStatusInFirebase = createAsyncThunk(
+  'bookings/updateBookingStatusInFirebase',
+  async ({ bookingId, status }: { bookingId: string; status: 'pending' | 'confirmed' | 'cancelled' }) => {
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), { status });
+      return { bookingId, status };
+    } catch (error) {
+      throw new Error('Failed to update booking status in Firebase');
+    }
+  }
+);
+
 const bookingsSlice = createSlice({
   name: 'bookings',
   initialState,
@@ -128,6 +154,35 @@ const bookingsSlice = createSlice({
       .addCase(fetchBookingsFromFirebase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch bookings';
+      })
+      // Delete booking from Firebase
+      .addCase(deleteBookingFromFirebase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteBookingFromFirebase.fulfilled, (state, action) => {
+        state.loading = false;
+        state.bookings = state.bookings.filter(booking => booking.id !== action.payload);
+      })
+      .addCase(deleteBookingFromFirebase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete booking';
+      })
+      // Update booking status in Firebase
+      .addCase(updateBookingStatusInFirebase.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateBookingStatusInFirebase.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.bookings.findIndex(booking => booking.id === action.payload.bookingId);
+        if (index !== -1) {
+          state.bookings[index].status = action.payload.status;
+        }
+      })
+      .addCase(updateBookingStatusInFirebase.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update booking status';
       });
   }
 });

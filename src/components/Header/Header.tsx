@@ -99,6 +99,7 @@ const Header: React.FC = () => {
           <li><NavLink to="/services" onClick={closeMenu}>Palvelut</NavLink></li>
           <li><NavLink to="/booking" onClick={closeMenu}>Varaus</NavLink></li>
           <li><NavLink to="/about" onClick={closeMenu}>Tietoa miestä</NavLink></li>
+          <li><NavLink to="/bookings-management" onClick={closeMenu}>Hallinta</NavLink></li>
           <li><NavLink to="/#contact" onClick={closeMenu}>Yhtestiedot</NavLink></li>
         </NavLinks>
         
@@ -111,6 +112,8 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
+
 
 
 

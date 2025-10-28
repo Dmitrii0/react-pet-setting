@@ -26,3 +26,5 @@ export const testFirebaseConnection = async () => {
 
 // Автоматический тест при импорте (раскомментируйте для тестирования)
 // testFirebaseConnection();
+
+

@@ -200,8 +200,7 @@ const BookingPage: React.FC = () => {
       return;
     }
 
-    const booking = {
-      id: Date.now().toString(),
+    const bookingData = {
       serviceId: selectedService.id,
       serviceName: selectedService.name,
       price: totalPrice,
@@ -214,10 +213,9 @@ const BookingPage: React.FC = () => {
       time: formData.time,
       message: formData.message,
       status: 'pending' as const,
-      createdAt: new Date().toISOString()
     };
 
-    dispatch(addBookingToFirebase(booking));
+    dispatch(addBookingToFirebase(bookingData) as any);
     alert('Varaus lähetetty onnistuneesti! Otamme yhteyttä sinuun pian.');
     
     // Reset form

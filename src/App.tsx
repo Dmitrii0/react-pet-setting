@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import ServicesPage from './pages/ServicesPage';
 import BookingPage from './pages/BookingPage';
 import AboutPage from './pages/AboutPage';
+import BookingsManagementPage from './pages/BookingsManagementPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/bookings-management" element={<BookingsManagementPage />} />
       </Routes>
       <Instagram />
       <Footer />
