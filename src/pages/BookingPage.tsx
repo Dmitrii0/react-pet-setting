@@ -133,6 +133,9 @@ const BookingPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const today = new Date().toISOString().split('T')[0];
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\+?\d{7,15}$/;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -198,6 +201,26 @@ const BookingPage: React.FC = () => {
     
     if (!selectedService) {
       alert('Valitse palvelu ennen varaamista!');
+      return;
+    }
+
+    if (!emailRegex.test(formData.email.trim())) {
+      alert('Anna oikea sähköpostiosoite (esim. nimi@domain.fi)');
+      return;
+    }
+
+    if (!phoneRegex.test(formData.phone.replace(/\s+/g, ''))) {
+      alert('Anna oikea puhelinnumero. Vain numerot ja mahdollinen +-merkki, 7-15 merkkiä.');
+      return;
+    }
+
+    if (!formData.startDate || formData.startDate < today) {
+      alert('Aloituspäivän tulee olla tästä päivästä eteenpäin.');
+      return;
+    }
+
+    if (!formData.endDate || formData.endDate < formData.startDate) {
+      alert('Lopetuspäivän pitää olla sama tai myöhempi kuin aloituspäivä.');
       return;
     }
 
@@ -457,6 +480,7 @@ const BookingPage: React.FC = () => {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
+                  min={today}
                   required
                 />
               </FormGroup>
@@ -469,6 +493,7 @@ const BookingPage: React.FC = () => {
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
+                  min={formData.startDate || today}
                   required
                 />
               </FormGroup>

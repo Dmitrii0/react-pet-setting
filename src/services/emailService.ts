@@ -105,3 +105,9 @@ export const sendCustomerConfirmation = async (customerEmail: string, bookingDat
   }
 };
 
+
+
+
+
+
+

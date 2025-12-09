@@ -190,38 +190,56 @@ const ServicesPage: React.FC = () => {
           </div>
         )}
         
+        {services.length === 0 && !loading && (
+          <div style={{ textAlign: 'center', color: 'white', fontSize: '1.2rem', marginTop: '2rem' }}>
+            Palveluja ei löytynyt. Yritä päivittää sivu.
+          </div>
+        )}
+        
         <ServicesGrid>
-          {services.map((service, index) => (
-            <ServiceCard 
-              key={service.id} 
-              cardColor={cardColors[index % cardColors.length]}
-              style={{ animationDelay: `${index * 0.3}s` }}
-            >
-              <ServiceIcon cardColor={cardColors[index % cardColors.length]}>
-                <i className={service.icon}></i>
-              </ServiceIcon>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#333', marginBottom: '1rem' }}>
-                {service.name}
-              </h3>
-              <p style={{ color: '#666', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                {service.description}
-              </p>
-              <ServicePrice cardColor={cardColors[index % cardColors.length]}>
-                {service.price}€
-              </ServicePrice>
-              <ServiceFeatures>
-                {service.features.map((feature, idx) => (
-                  <li key={idx}>{feature}</li>
-                ))}
-              </ServiceFeatures>
-              <ServiceButton 
+          {services.map((service, index) => {
+            // Проверяем, что данные есть
+            if (!service || !service.name) {
+              console.warn('Service data missing:', service);
+              return null;
+            }
+            
+            return (
+              <ServiceCard 
+                key={service.id || index} 
                 cardColor={cardColors[index % cardColors.length]}
-                onClick={() => handleSelectService(service)}
+                style={{ animationDelay: `${index * 0.3}s` }}
               >
-                Valitse
-              </ServiceButton>
-            </ServiceCard>
-          ))}
+                <ServiceIcon cardColor={cardColors[index % cardColors.length]}>
+                  <i className={service.icon || 'ri-service-line'}></i>
+                </ServiceIcon>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#333', marginBottom: '1rem' }}>
+                  {service.name || 'Nimetön palvelu'}
+                </h3>
+                {service.description && (
+                  <p style={{ color: '#666', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                    {service.description}
+                  </p>
+                )}
+                <ServicePrice cardColor={cardColors[index % cardColors.length]}>
+                  {service.price || 0}€
+                </ServicePrice>
+                {service.features && Array.isArray(service.features) && service.features.length > 0 && (
+                  <ServiceFeatures>
+                    {service.features.map((feature: string, idx: number) => (
+                      <li key={idx}>{feature}</li>
+                    ))}
+                  </ServiceFeatures>
+                )}
+                <ServiceButton 
+                  cardColor={cardColors[index % cardColors.length]}
+                  onClick={() => handleSelectService(service)}
+                >
+                  Valitse
+                </ServiceButton>
+              </ServiceCard>
+            );
+          })}
         </ServicesGrid>
       </div>
     </ServicesContainer>

@@ -21,6 +21,7 @@ const NavContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 `;
 
 const Logo = styled(Link)`
@@ -40,16 +41,20 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
   gap: 2rem;
   
   @media (max-width: 768px) {
-    position: fixed;
-    top: 70px;
+    position: absolute;
+    top: calc(100% + 0.75rem);
     left: 0;
     right: 0;
-    background: white;
+    background: #fff;
     flex-direction: column;
-    padding: 2rem;
-    transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-100%)'};
-    transition: transform 0.3s ease;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    gap: 1.5rem;
+    padding: 1.75rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+    opacity: ${props => props.isOpen ? '1' : '0'};
+    pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
+    transition: opacity 0.25s ease, transform 0.25s ease;
   }
 `;
 
@@ -70,6 +75,9 @@ const MenuButton = styled.button`
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
+  color: #333;
+  line-height: 1;
+  padding: 0.25rem;
   
   @media (max-width: 768px) {
     display: block;
@@ -103,7 +111,12 @@ const Header: React.FC = () => {
           <li><NavLink to="/#contact" onClick={closeMenu}>Yhtestiedot</NavLink></li>
         </NavLinks>
         
-        <MenuButton onClick={toggleMenu}>
+        <MenuButton
+          type="button"
+          onClick={toggleMenu}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
+        >
           <i className={isMenuOpen ? 'ri-close-line' : 'ri-menu-line'}></i>
         </MenuButton>
       </NavContainer>

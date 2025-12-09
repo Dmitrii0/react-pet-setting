@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../services/api';
+import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export interface Service {
   id: string;
@@ -23,7 +24,95 @@ interface ServicesState {
 }
 
 const initialState: ServicesState = {
-  services: [
+  services: [],
+  selectedService: null,
+  loading: false,
+  error: null,
+};
+
+// Async thunk для загрузки услуг из Firebase Firestore
+export const fetchServices = createAsyncThunk(
+  'services/fetchServices',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Пытаемся загрузить из Firebase
+      // Сначала пробуем с orderBy, если не работает - без него
+      let querySnapshot;
+      try {
+        const q = query(
+          collection(db, 'services'),
+          orderBy('name')
+        );
+        querySnapshot = await getDocs(q);
+      } catch (orderByError: any) {
+        // Если orderBy не работает (нет индекса), загружаем без сортировки
+        console.warn('OrderBy failed, loading without sort:', orderByError);
+        querySnapshot = await getDocs(collection(db, 'services'));
+      }
+      
+      if (!querySnapshot.empty) {
+        const services: Service[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log(`📄 Загружен документ ${doc.id}:`, data);
+          
+          // Исправляем features если это строка вместо массива
+          let features = data.features;
+          if (typeof features === 'string') {
+            try {
+              features = JSON.parse(features);
+            } catch {
+              // Если не JSON, пытаемся разбить по запятым
+              features = features.split(',').map((f: string) => f.trim()).filter((f: string) => f);
+            }
+          }
+          if (!Array.isArray(features)) {
+            features = [];
+          }
+          
+          // Проверяем, что все обязательные поля есть
+          const service: Service = {
+            id: doc.id,
+            name: data.name || 'Nimetön palvelu',
+            description: data.description || 'Ei kuvausta saatavilla.',
+            price: data.price || 0,
+            duration: data.duration || 60,
+            category: data.category || 'home_visit',
+            features: features,
+            icon: data.icon || 'ri-service-line',
+            isActive: data.isActive !== undefined ? data.isActive : true,
+            createdAt: data.createdAt || new Date().toISOString(),
+            updatedAt: data.updatedAt || new Date().toISOString()
+          };
+          
+          console.log(`✅ Обработан сервис ${service.id}:`, service.name, 'features:', service.features.length);
+          services.push(service);
+        });
+        console.log(`📊 Всего загружено услуг: ${services.length}`);
+        
+        // Если загружено меньше 6 услуг или есть пустые данные, используем дефолтные
+        if (services.length < 6 || services.some(s => !s.name || !s.description)) {
+          console.warn('⚠️ Данные из Firebase неполные, используем дефолтные данные');
+          return getDefaultServices();
+        }
+        
+        return services;
+      } else {
+        // Если коллекция пуста, возвращаем дефолтные данные
+        console.warn('⚠️ Коллекция services пуста, используем дефолтные данные');
+        return getDefaultServices();
+      }
+    } catch (error: any) {
+      console.warn('Firebase services not available, using default services:', error);
+      // В случае ошибки возвращаем дефолтные данные
+      return getDefaultServices();
+    }
+  }
+);
+
+// Функция для получения дефолтных услуг (fallback)
+function getDefaultServices(): Service[] {
+  return [
     {
       id: '1',
       name: 'Kotikäynnit',
@@ -102,33 +191,32 @@ const initialState: ServicesState = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-  ],
-  selectedService: null,
-  loading: false,
-  error: null,
-};
-
-// Async thunks
-export const fetchServices = createAsyncThunk(
-  'services/fetchServices',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/services');
-      return response.data.data.services;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch services');
-    }
-  }
-);
+  ];
+}
 
 export const fetchServiceById = createAsyncThunk(
   'services/fetchServiceById',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/services/${id}`);
-      return response.data.data.service;
+      const docRef = doc(db, 'services', id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return {
+          id: docSnap.id,
+          ...docSnap.data()
+        } as Service;
+      } else {
+        // Если не найдено в Firebase, ищем в дефолтных данных
+        const defaultServices = getDefaultServices();
+        const service = defaultServices.find(s => s.id === id);
+        if (service) {
+          return service;
+        }
+        throw new Error('Service not found');
+      }
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch service');
+      return rejectWithValue(error.message || 'Failed to fetch service');
     }
   }
 );

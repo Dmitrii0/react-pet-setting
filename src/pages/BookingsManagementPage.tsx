@@ -474,3 +474,9 @@ const BookingsManagementPage: React.FC = () => {
 
 export default BookingsManagementPage;
 
+
+
+
+
+
+
