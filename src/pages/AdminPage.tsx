@@ -6,19 +6,113 @@ import {
   deleteBookingFromSupabase, 
   updateBookingStatusInSupabase 
 } from '../store/slices/bookingsSlice';
+import { isRejected } from '@reduxjs/toolkit';
 import styled from 'styled-components';
 
+// Простая защита паролем (для учебного проекта)
+const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || 'admin123';
+
+const LoginContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+`;
+
+const LoginBox = styled.div`
+  background: white;
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 100%;
+`;
+
+const LoginTitle = styled.h1`
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+  text-align: center;
+`;
+
+const LoginInput = styled.input`
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+`;
+
+const LoginButton = styled.button`
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: #f44336;
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+`;
+
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 120px auto 80px;
   padding: 0 2rem;
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 `;
 
 const PageTitle = styled.h1`
   font-size: 2.5rem;
   color: #333;
-  margin-bottom: 2rem;
-  text-align: center;
+  margin: 0;
+`;
+
+const LogoutButton = styled.button`
+  padding: 0.7rem 1.5rem;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #d32f2f;
+    transform: translateY(-2px);
+  }
 `;
 
 const StatsContainer = styled.div`
@@ -34,10 +128,16 @@ const StatCard = styled.div`
   border-radius: 15px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const StatNumber = styled.div`
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #667eea;
 `;
@@ -45,6 +145,20 @@ const StatNumber = styled.div`
 const StatLabel = styled.div`
   color: #666;
   margin-top: 0.5rem;
+  font-size: 1rem;
+`;
+
+const RevenueCard = styled(StatCard)`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  
+  ${StatNumber} {
+    color: white;
+  }
+  
+  ${StatLabel} {
+    color: rgba(255, 255, 255, 0.9);
+  }
 `;
 
 const FiltersContainer = styled.div`
@@ -60,7 +174,7 @@ const FiltersContainer = styled.div`
 `;
 
 const FilterSelect = styled.select`
-  padding: 0.5rem 1rem;
+  padding: 0.7rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   font-size: 1rem;
@@ -80,7 +194,7 @@ const FilterSelect = styled.select`
 const SearchInput = styled.input`
   flex: 1;
   min-width: 200px;
-  padding: 0.5rem 1rem;
+  padding: 0.7rem 1rem;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
   font-size: 1rem;
@@ -89,6 +203,23 @@ const SearchInput = styled.input`
   &:focus {
     outline: none;
     border-color: #667eea;
+  }
+`;
+
+const ExportButton = styled.button`
+  padding: 0.7rem 1.5rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #388e3c;
+    transform: translateY(-2px);
   }
 `;
 
@@ -134,9 +265,31 @@ const ServiceName = styled.h3`
   margin-bottom: 0.5rem;
 `;
 
+const StatusBadge = styled.span<{ status: string }>`
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  background: ${props => 
+    props.status === 'confirmed' ? '#e8f5e9' :
+    props.status === 'cancelled' ? '#ffebee' : '#fff3e0'
+  };
+  color: ${props => 
+    props.status === 'confirmed' ? '#2e7d32' :
+    props.status === 'cancelled' ? '#c62828' : '#e65100'
+  };
+`;
+
 const CustomerInfo = styled.div`
   color: #666;
   margin-top: 0.5rem;
+  font-size: 0.95rem;
+  
+  div {
+    margin: 0.3rem 0;
+  }
 `;
 
 const BookingDetails = styled.div`
@@ -165,22 +318,6 @@ const DetailValue = styled.span`
   font-size: 1.1rem;
   color: #333;
   font-weight: 600;
-`;
-
-const StatusBadge = styled.span<{ status: string }>`
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  background: ${props => 
-    props.status === 'confirmed' ? '#e8f5e9' :
-    props.status === 'cancelled' ? '#ffebee' : '#fff3e0'
-  };
-  color: ${props => 
-    props.status === 'confirmed' ? '#2e7d32' :
-    props.status === 'cancelled' ? '#c62828' : '#e65100'
-  };
 `;
 
 const ActionsContainer = styled.div`
@@ -259,15 +396,6 @@ const LoadingMessage = styled.div`
   font-size: 1.2rem;
 `;
 
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  background: #ffebee;
-  color: #c62828;
-  border-radius: 10px;
-  font-size: 1rem;
-`;
-
 const EmptyMessage = styled.div`
   text-align: center;
   padding: 3rem;
@@ -275,16 +403,41 @@ const EmptyMessage = styled.div`
   font-size: 1.2rem;
 `;
 
-const BookingsManagementPage: React.FC = () => {
+const AdminPage: React.FC = () => {
   const dispatch = useDispatch();
   const { bookings, loading, error } = useSelector((state: RootState) => state.bookings);
   
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('adminAuthenticated') === 'true';
+  });
+  
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    dispatch(fetchBookingsFromSupabase() as any);
-  }, [dispatch]);
+    if (isAuthenticated) {
+      dispatch(fetchBookingsFromSupabase() as any);
+    }
+  }, [dispatch, isAuthenticated]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('adminAuthenticated', 'true');
+      setLoginError('');
+    } else {
+      setLoginError('Väärä salasana!');
+      setPassword('');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('adminAuthenticated');
+  };
 
   const handleDelete = async (bookingId: string) => {
     if (window.confirm('Haluatko varmasti poistaa tämän varauksen?')) {
@@ -293,17 +446,72 @@ const BookingsManagementPage: React.FC = () => {
   };
 
   const handleStatusChange = async (bookingId: string, newStatus: 'pending' | 'confirmed' | 'cancelled') => {
-    await dispatch(updateBookingStatusInSupabase({ bookingId, status: newStatus }) as any);
+    try {
+      const result = await dispatch(updateBookingStatusInSupabase({ bookingId, status: newStatus }) as any);
+      if (isRejected(result)) {
+        console.error('Failed to update status:', result.error);
+        const errorMsg = result.error.message || 'Unknown error';
+        
+        if (errorMsg.includes('not found')) {
+          alert(`Varaus ei löytynyt!\n\nVaraus on todennäköisesti poistettu.\nPäivitä sivu nähdäksesi uusimmat varaukset.`);
+          // Обновляем список бронирований после ошибки
+          dispatch(fetchBookingsFromSupabase() as any);
+        } else {
+          alert(`Virhe: ${errorMsg}\n\nTarkista Firebase Console → Firestore → Rules että kirjoitus on sallittu.`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      alert(`Virhe päivittäessä tilaa: ${error.message || 'Tuntematon virhe'}`);
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = ['ID', 'Palvelu', 'Asiakas', 'Sähköposti', 'Puhelin', 'Lemmikki', 'Päivämäärä', 'Aika', 'Hinta', 'Tila', 'Luotu'];
+    const rows = filteredBookings.map(booking => [
+      booking.id,
+      booking.serviceName,
+      booking.customerName,
+      booking.customerEmail,
+      booking.customerPhone,
+      booking.petName,
+      booking.date,
+      booking.time,
+      `${booking.price}€`,
+      booking.status === 'confirmed' ? 'Vahvistettu' : booking.status === 'cancelled' ? 'Peruttu' : 'Odottaa',
+      new Date(booking.createdAt).toLocaleString('fi-FI')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `varaukset_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Фильтрация бронирований
   const filteredBookings = bookings.filter(booking => {
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    
+    if (!searchQuery) {
+      return matchesStatus;
+    }
+    
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
-      booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.petName.toLowerCase().includes(searchQuery.toLowerCase());
+      (booking.customerName?.toLowerCase() || '').includes(searchLower) ||
+      (booking.customerEmail?.toLowerCase() || '').includes(searchLower) ||
+      (booking.serviceName?.toLowerCase() || '').includes(searchLower) ||
+      (booking.petName?.toLowerCase() || '').includes(searchLower);
     
     return matchesStatus && matchesSearch;
   });
@@ -313,13 +521,65 @@ const BookingsManagementPage: React.FC = () => {
   const pendingBookings = bookings.filter(b => b.status === 'pending').length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
+  const totalRevenue = bookings
+    .filter(b => b.status === 'confirmed')
+    .reduce((sum, b) => sum + (b.price || 0), 0);
+
+  // Если не авторизован, показываем форму входа
+  if (!isAuthenticated) {
+    return (
+      <LoginContainer>
+        <LoginBox>
+          <LoginTitle>🔐 Admin Paneeli</LoginTitle>
+          <form onSubmit={handleLogin}>
+            <LoginInput
+              type="password"
+              placeholder="Salasana"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+            <LoginButton type="submit">Kirjaudu sisään</LoginButton>
+            {loginError && <ErrorMessage>{loginError}</ErrorMessage>}
+          </form>
+          <p style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
+            💡 Oletus salasana: admin123
+          </p>
+        </LoginBox>
+      </LoginContainer>
+    );
+  }
 
   return (
     <Container>
-      <PageTitle>Varaushallinta</PageTitle>
+      <PageHeader>
+        <PageTitle>🔧 Admin Paneeli</PageTitle>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <Button 
+            onClick={() => dispatch(fetchBookingsFromSupabase() as any)}
+            disabled={loading}
+            style={{ background: '#2196f3' }}
+          >
+            🔄 Päivitä lista
+          </Button>
+          <ExportButton onClick={exportToCSV}>
+            📥 Vie CSV
+          </ExportButton>
+          <LogoutButton onClick={handleLogout}>
+            Kirjaudu ulos
+          </LogoutButton>
+        </div>
+      </PageHeader>
 
       {loading && <LoadingMessage>Ladataan...</LoadingMessage>}
-      {error && <ErrorMessage>Virhe: {error}</ErrorMessage>}
+      {error && <div style={{ 
+        textAlign: 'center', 
+        padding: '2rem', 
+        background: '#ffebee', 
+        color: '#c62828', 
+        borderRadius: '10px',
+        marginBottom: '2rem'
+      }}>Virhe: {error}</div>}
 
       {!loading && !error && (
         <>
@@ -327,11 +587,11 @@ const BookingsManagementPage: React.FC = () => {
           <StatsContainer>
             <StatCard>
               <StatNumber>{totalBookings}</StatNumber>
-              <StatLabel>Yhteensä</StatLabel>
+              <StatLabel>Yhteensä varauksia</StatLabel>
             </StatCard>
             <StatCard>
               <StatNumber style={{ color: '#ff9800' }}>{pendingBookings}</StatNumber>
-              <StatLabel>Odottaa</StatLabel>
+              <StatLabel>Odottaa vahvistusta</StatLabel>
             </StatCard>
             <StatCard>
               <StatNumber style={{ color: '#4caf50' }}>{confirmedBookings}</StatNumber>
@@ -341,6 +601,10 @@ const BookingsManagementPage: React.FC = () => {
               <StatNumber style={{ color: '#f44336' }}>{cancelledBookings}</StatNumber>
               <StatLabel>Peruttu</StatLabel>
             </StatCard>
+            <RevenueCard>
+              <StatNumber>{totalRevenue}€</StatNumber>
+              <StatLabel>Kokonaistulot</StatLabel>
+            </RevenueCard>
           </StatsContainer>
 
           {/* Фильтры */}
@@ -349,7 +613,7 @@ const BookingsManagementPage: React.FC = () => {
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">Kaikki</option>
+              <option value="all">Kaikki tilat</option>
               <option value="pending">Odottaa</option>
               <option value="confirmed">Vahvistettu</option>
               <option value="cancelled">Peruttu</option>
@@ -357,7 +621,7 @@ const BookingsManagementPage: React.FC = () => {
 
             <SearchInput
               type="text"
-              placeholder="Etsi nimi, sähköposti tai palvelu..."
+              placeholder="Etsi nimi, sähköposti, palvelu tai lemmikki..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -366,7 +630,9 @@ const BookingsManagementPage: React.FC = () => {
           {/* Список бронирований */}
           {filteredBookings.length === 0 ? (
             <EmptyMessage>
-              Ei varauksia löytynyt
+              {bookings.length === 0 
+                ? 'Ei varauksia vielä' 
+                : 'Ei varauksia löytynyt hakuehdoilla'}
             </EmptyMessage>
           ) : (
             <BookingsList>
@@ -376,16 +642,16 @@ const BookingsManagementPage: React.FC = () => {
                     <BookingInfo>
                       <ServiceName>{booking.serviceName}</ServiceName>
                       <StatusBadge status={booking.status}>
-                        {booking.status === 'confirmed' ? 'Vahvistettu' :
-                         booking.status === 'cancelled' ? 'Peruttu' : 'Odottaa'}
+                        {booking.status === 'confirmed' ? '✅ Vahvistettu' :
+                         booking.status === 'cancelled' ? '❌ Peruttu' : '⏳ Odottaa'}
                       </StatusBadge>
                       <CustomerInfo>
-                        <div>Nimi: {booking.customerName}</div>
-                        <div>Sähköposti: {booking.customerEmail}</div>
-                        <div>Puhelin: {booking.customerPhone}</div>
+                        <div><strong>Asiakas:</strong> {booking.customerName}</div>
+                        <div><strong>Sähköposti:</strong> {booking.customerEmail}</div>
+                        <div><strong>Puhelin:</strong> {booking.customerPhone}</div>
                       </CustomerInfo>
                     </BookingInfo>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea' }}>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#667eea', textAlign: 'right' }}>
                       {booking.price}€
                     </div>
                   </BookingHeader>
@@ -400,13 +666,19 @@ const BookingsManagementPage: React.FC = () => {
                       <DetailValue>{booking.petType}</DetailValue>
                     </DetailItem>
                     <DetailItem>
-                      <DetailLabel>Päivämäärä</DetailLabel>
-                      <DetailValue>{booking.date}</DetailValue>
+                      <DetailLabel>Aloituspäivä</DetailLabel>
+                      <DetailValue>{(booking as any).startDate || booking.date}</DetailValue>
                     </DetailItem>
                     <DetailItem>
-                      <DetailLabel>Aika</DetailLabel>
-                      <DetailValue>{booking.time}</DetailValue>
+                      <DetailLabel>Lopetuspäivä</DetailLabel>
+                      <DetailValue>{(booking as any).endDate || booking.date}</DetailValue>
                     </DetailItem>
+                    {booking.time && (
+                      <DetailItem>
+                        <DetailLabel>Aika</DetailLabel>
+                        <DetailValue>{booking.time}</DetailValue>
+                      </DetailItem>
+                    )}
                   </BookingDetails>
 
                   {booking.message && (
@@ -418,7 +690,7 @@ const BookingsManagementPage: React.FC = () => {
                       fontStyle: 'italic',
                       color: '#666'
                     }}>
-                      "{booking.message}"
+                      <strong>Viesti:</strong> "{booking.message}"
                     </div>
                   )}
 
@@ -428,7 +700,7 @@ const BookingsManagementPage: React.FC = () => {
                         variant="success" 
                         onClick={() => handleStatusChange(booking.id, 'confirmed')}
                       >
-                        Vahvista
+                        ✅ Vahvista
                       </Button>
                     )}
                     {booking.status !== 'cancelled' && (
@@ -436,27 +708,27 @@ const BookingsManagementPage: React.FC = () => {
                         variant="warning" 
                         onClick={() => handleStatusChange(booking.id, 'cancelled')}
                       >
-                        Peruuta
+                        ❌ Peruuta
                       </Button>
                     )}
                     {booking.status === 'confirmed' && (
                       <Button 
                         onClick={() => handleStatusChange(booking.id, 'pending')}
                       >
-                        Palauta odottamaan
+                        ⏳ Palauta odottamaan
                       </Button>
                     )}
                     <Button 
                       variant="danger" 
                       onClick={() => handleDelete(booking.id)}
                     >
-                      Poista
+                      🗑️ Poista
                     </Button>
                   </ActionsContainer>
 
                   <div style={{ 
                     marginTop: '1rem', 
-                    fontSize: '0.9rem', 
+                    fontSize: '0.85rem', 
                     color: '#999',
                     textAlign: 'right'
                   }}>
@@ -472,11 +744,5 @@ const BookingsManagementPage: React.FC = () => {
   );
 };
 
-export default BookingsManagementPage;
-
-
-
-
-
-
+export default AdminPage;
 

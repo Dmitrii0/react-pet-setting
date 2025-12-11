@@ -22,6 +22,10 @@ const NavContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   position: relative;
+  
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -29,9 +33,19 @@ const Logo = styled(Link)`
   font-weight: 700;
   color: #333;
   text-decoration: none;
+  z-index: 1001;
+  position: relative;
   
   &:hover {
     color: #667eea;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -39,22 +53,41 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
   display: flex;
   list-style: none;
   gap: 2rem;
+  margin: 0;
+  padding: 0;
   
   @media (max-width: 768px) {
-    position: absolute;
-    top: calc(100% + 0.75rem);
+    position: fixed;
+    top: 70px;
     left: 0;
     right: 0;
     background: #fff;
     flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.75rem 1.5rem;
-    border-radius: 1rem;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+    gap: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-height: ${props => props.isOpen ? 'calc(100vh - 70px)' : '0'};
+    overflow: hidden;
+    transform: none;
     opacity: ${props => props.isOpen ? '1' : '0'};
     pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
+    z-index: 999;
+    
+    li {
+      border-bottom: 1px solid #f0f0f0;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+    
+    a {
+      display: block;
+      padding: 1.25rem 1.5rem;
+      width: 100%;
+    }
   }
 `;
 
@@ -73,14 +106,31 @@ const MenuButton = styled.button`
   display: none;
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   cursor: pointer;
   color: #333;
   line-height: 1;
-  padding: 0.25rem;
+  padding: 0.5rem;
+  z-index: 1001;
+  position: relative;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: #667eea;
+  }
+  
+  &:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
   
   @media (max-width: 768px) {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
   }
 `;
 
@@ -98,9 +148,18 @@ const Header: React.FC = () => {
   return (
     <Nav>
       <NavContainer>
-        <Logo to="/">
+        <Logo to="/" onClick={closeMenu}>
           We Pet Care Helsinki Espoo Vantaa
         </Logo>
+        
+        <MenuButton
+          type="button"
+          onClick={toggleMenu}
+          aria-label={isMenuOpen ? 'Sulje valikko' : 'Avaa valikko'}
+          aria-expanded={isMenuOpen}
+        >
+          <i className={isMenuOpen ? 'ri-close-line' : 'ri-menu-line'}></i>
+        </MenuButton>
         
         <NavLinks isOpen={isMenuOpen}>
           <li><NavLink to="/" onClick={closeMenu}>Etusivu</NavLink></li>
@@ -110,15 +169,6 @@ const Header: React.FC = () => {
           <li><NavLink to="/bookings-management" onClick={closeMenu}>Hallinta</NavLink></li>
           <li><NavLink to="/#contact" onClick={closeMenu}>Yhtestiedot</NavLink></li>
         </NavLinks>
-        
-        <MenuButton
-          type="button"
-          onClick={toggleMenu}
-          aria-label="Toggle navigation menu"
-          aria-expanded={isMenuOpen}
-        >
-          <i className={isMenuOpen ? 'ri-close-line' : 'ri-menu-line'}></i>
-        </MenuButton>
       </NavContainer>
     </Nav>
   );

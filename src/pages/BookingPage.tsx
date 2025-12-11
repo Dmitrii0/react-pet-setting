@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
-import { addBookingToFirebase } from '../store/slices/bookingsSlice';
+import { addBookingToSupabase } from '../store/slices/bookingsSlice';
+import { isRejected } from '@reduxjs/toolkit';
 import { setSelectedService } from '../store/slices/servicesSlice';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
 import { sendBookingNotification } from '../services/emailService';
 
 const BookingContainer = styled.div`
@@ -177,24 +176,6 @@ const BookingPage: React.FC = () => {
 
   const totalPrice = calculatePrice();
 
-  // Тестовая функция для проверки Firebase
-  const testFirebase = async () => {
-    try {
-      console.log("🔥 Тестируем Firebase...");
-      const docRef = await addDoc(collection(db, "bookings"), {
-        name: "Dmitrii",
-        email: "stepanov@gmail.com",
-        phone: "11",
-        testData: true,
-        createdAt: new Date().toISOString()
-      });
-      console.log("✅ Тест успешен! Document ID:", docRef.id);
-      alert("✅ Firebase тест успешен! Проверьте консоль.");
-    } catch (error) {
-      console.error("❌ Ошибка Firebase:", error);
-      alert("❌ Ошибка Firebase: " + error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,8 +220,19 @@ const BookingPage: React.FC = () => {
       status: 'pending' as const,
     };
 
-    // Сохраняем в Firebase
-    dispatch(addBookingToFirebase(bookingData) as any);
+    // Сохраняем в Supabase с обработкой ошибок
+    try {
+      const result = await dispatch(addBookingToSupabase(bookingData) as any);
+      
+      // Проверяем, была ли ошибка
+      if (addBookingToSupabase.rejected.match(result)) {
+        const errorMsg = result.error.message || 'Tuntematon virhe';
+        console.error('❌ Ошибка сохранения в Supabase:', result.error);
+        alert(`❌ Virhe tallennettaessa varausta!\n\n${errorMsg}\n\nTarkista:\n1. Supabase Dashboard → Table Editor → bookings\n2. Konsoli (F12) virheilmoituksille`);
+        return; // Не продолжаем, если ошибка
+      }
+      
+      console.log('✅ Бронирование успешно сохранено в Supabase:', result.payload);
     
     // Отправляем email уведомление владельцу сайта
     try {
@@ -259,9 +251,16 @@ const BookingPage: React.FC = () => {
       console.log('✅ Email notification sent to owner');
     } catch (error) {
       console.error('❌ Failed to send email notification:', error);
+        // Не показываем ошибку пользователю, т.к. бронирование уже сохранено
     }
     
-    alert('Varaus lähetetty onnistuneesti! Otamme yhteyttä sinuun pian.');
+      alert('✅ Varaus lähetetty onnistuneesti! Otamme yhteyttä sinuun pian.');
+      
+    } catch (error: any) {
+      console.error('❌ Критическая ошибка при сохранении:', error);
+      alert(`❌ Virhe tallennettaessa varausta!\n\n${error.message || 'Tuntematon virhe'}\n\nTarkista konsoli (F12) lisätietoja varten.`);
+      return;
+    }
     
     // Reset form
     setFormData({
@@ -536,23 +535,6 @@ const BookingPage: React.FC = () => {
                     Varaa Palvelu
                   </SubmitButton>
                   
-                  {/* Тестовая кнопка для Firebase */}
-                  <button 
-                    type="button" 
-                    onClick={testFirebase}
-                    style={{
-                      background: '#ff6b6b',
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      marginTop: '10px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    🔥 Тест Firebase
-                  </button>
             </form>
           </BookingForm>
         </BookingContent>

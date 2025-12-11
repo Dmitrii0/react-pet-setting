@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { collection, getDocs, query, orderBy, doc, getDoc, where } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../config/supabase';
 
 export interface Service {
   id: string;
@@ -30,85 +29,36 @@ const initialState: ServicesState = {
   error: null,
 };
 
-// Async thunk для загрузки услуг из Firebase Firestore
-export const fetchServices = createAsyncThunk(
-  'services/fetchServices',
-  async (_, { rejectWithValue }) => {
+// Функция для преобразования данных из Supabase (snake_case) в формат приложения (camelCase)
+function transformServiceFromSupabase(data: any): Service {
+  // Обрабатываем features - может быть массивом или строкой
+  let features = data.features;
+  if (typeof features === 'string') {
     try {
-      // Пытаемся загрузить из Firebase
-      // Сначала пробуем с orderBy, если не работает - без него
-      let querySnapshot;
-      try {
-        const q = query(
-          collection(db, 'services'),
-          orderBy('name')
-        );
-        querySnapshot = await getDocs(q);
-      } catch (orderByError: any) {
-        // Если orderBy не работает (нет индекса), загружаем без сортировки
-        console.warn('OrderBy failed, loading without sort:', orderByError);
-        querySnapshot = await getDocs(collection(db, 'services'));
-      }
-      
-      if (!querySnapshot.empty) {
-        const services: Service[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          console.log(`📄 Загружен документ ${doc.id}:`, data);
-          
-          // Исправляем features если это строка вместо массива
-          let features = data.features;
-          if (typeof features === 'string') {
-            try {
-              features = JSON.parse(features);
-            } catch {
-              // Если не JSON, пытаемся разбить по запятым
-              features = features.split(',').map((f: string) => f.trim()).filter((f: string) => f);
-            }
-          }
-          if (!Array.isArray(features)) {
-            features = [];
-          }
-          
-          // Проверяем, что все обязательные поля есть
-          const service: Service = {
-            id: doc.id,
-            name: data.name || 'Nimetön palvelu',
-            description: data.description || 'Ei kuvausta saatavilla.',
-            price: data.price || 0,
-            duration: data.duration || 60,
-            category: data.category || 'home_visit',
-            features: features,
-            icon: data.icon || 'ri-service-line',
-            isActive: data.isActive !== undefined ? data.isActive : true,
-            createdAt: data.createdAt || new Date().toISOString(),
-            updatedAt: data.updatedAt || new Date().toISOString()
-          };
-          
-          console.log(`✅ Обработан сервис ${service.id}:`, service.name, 'features:', service.features.length);
-          services.push(service);
-        });
-        console.log(`📊 Всего загружено услуг: ${services.length}`);
-        
-        // Если загружено меньше 6 услуг или есть пустые данные, используем дефолтные
-        if (services.length < 6 || services.some(s => !s.name || !s.description)) {
-          console.warn('⚠️ Данные из Firebase неполные, используем дефолтные данные');
-          return getDefaultServices();
-        }
-        
-        return services;
-      } else {
-        // Если коллекция пуста, возвращаем дефолтные данные
-        console.warn('⚠️ Коллекция services пуста, используем дефолтные данные');
-        return getDefaultServices();
-      }
-    } catch (error: any) {
-      console.warn('Firebase services not available, using default services:', error);
-      // В случае ошибки возвращаем дефолтные данные
-      return getDefaultServices();
+      features = JSON.parse(features);
+    } catch {
+      // Если не JSON, пытаемся разбить по запятым
+      features = features.split(',').map((f: string) => f.trim()).filter((f: string) => f);
     }
   }
-);
+  if (!Array.isArray(features)) {
+    features = [];
+  }
+
+  return {
+    id: data.id,
+    name: data.name || 'Nimetön palvelu',
+    description: data.description || 'Ei kuvausta saatavilla.',
+    price: data.price || 0,
+    duration: data.duration || 60,
+    category: data.category || 'home_visit',
+    features: features,
+    icon: data.icon || 'ri-service-line',
+    isActive: data.is_active !== undefined ? data.is_active : true,
+    createdAt: data.created_at || new Date().toISOString(),
+    updatedAt: data.updated_at || new Date().toISOString(),
+  };
+}
 
 // Функция для получения дефолтных услуг (fallback)
 function getDefaultServices(): Service[] {
@@ -194,20 +144,60 @@ function getDefaultServices(): Service[] {
   ];
 }
 
+// Async thunk для загрузки услуг из Supabase
+export const fetchServices = createAsyncThunk(
+  'services/fetchServices',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('📋 Загрузка услуг из Supabase...');
+      
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.warn('⚠️ Ошибка Supabase, используем дефолтные данные:', error);
+        return getDefaultServices();
+      }
+      
+      if (!data || data.length === 0) {
+        console.warn('⚠️ Таблица services пуста, используем дефолтные данные');
+        return getDefaultServices();
+      }
+      
+      const services: Service[] = data.map(transformServiceFromSupabase);
+      
+      // Проверяем качество данных
+      if (services.length < 6 || services.some(s => !s.name || !s.description)) {
+        console.warn('⚠️ Данные из Supabase неполные, используем дефолтные данные');
+        return getDefaultServices();
+      }
+      
+      console.log(`✅ Загружено услуг из Supabase: ${services.length}`);
+      return services;
+    } catch (error: any) {
+      console.warn('⚠️ Ошибка при загрузке услуг из Supabase, используем дефолтные данные:', error);
+      return getDefaultServices();
+    }
+  }
+);
+
+// Async thunk для загрузки услуги по ID из Supabase
 export const fetchServiceById = createAsyncThunk(
   'services/fetchServiceById',
   async (id: string, { rejectWithValue }) => {
     try {
-      const docRef = doc(db, 'services', id);
-      const docSnap = await getDoc(docRef);
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      if (docSnap.exists()) {
-        return {
-          id: docSnap.id,
-          ...docSnap.data()
-        } as Service;
-      } else {
-        // Если не найдено в Firebase, ищем в дефолтных данных
+      if (error) {
+        console.warn('⚠️ Услуга не найдена в Supabase, ищем в дефолтных данных');
+        // Если не найдено в Supabase, ищем в дефолтных данных
         const defaultServices = getDefaultServices();
         const service = defaultServices.find(s => s.id === id);
         if (service) {
@@ -215,6 +205,12 @@ export const fetchServiceById = createAsyncThunk(
         }
         throw new Error('Service not found');
       }
+      
+      if (!data) {
+        throw new Error('Service not found');
+      }
+      
+      return transformServiceFromSupabase(data);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch service');
     }
@@ -270,7 +266,3 @@ const servicesSlice = createSlice({
 
 export const { setSelectedService, clearSelectedService, clearError } = servicesSlice.actions;
 export default servicesSlice.reducer;
-
-
-
-

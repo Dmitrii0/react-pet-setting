@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-import FirebaseTest from '../components/FirebaseTest/FirebaseTest';
 
 const HomeContainer = styled.div`
   min-height: 100vh;
@@ -291,13 +290,6 @@ const HomePage: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
-      </section>
-      
-      {/* Временный компонент для тестирования Firebase - можно удалить после проверки */}
-      <section style={{ padding: '2rem 0', background: 'white' }}>
-        <div className="container">
-          <FirebaseTest />
         </div>
       </section>
     </HomeContainer>

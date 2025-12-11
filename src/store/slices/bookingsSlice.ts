@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { collection, addDoc, getDocs, orderBy, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../config/supabase';
+import { BookingInsert, BookingUpdate } from '../../types/supabase';
 
+// Интерфейс для работы в приложении (camelCase)
 export interface Booking {
   id: string;
   serviceId: string;
@@ -14,9 +15,12 @@ export interface Booking {
   petType: string;
   date: string;
   time: string;
+  startDate?: string;
+  endDate?: string;
   message?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface BookingsState {
@@ -31,72 +35,186 @@ const initialState: BookingsState = {
   error: null,
 };
 
-// Async thunk для добавления бронирования в Firebase
-export const addBookingToFirebase = createAsyncThunk(
-  'bookings/addBookingToFirebase',
-  async (booking: Omit<Booking, 'id' | 'createdAt'>) => {
+// Функция для преобразования данных из Supabase (snake_case) в формат приложения (camelCase)
+function transformBookingFromSupabase(data: any): Booking {
+  return {
+    id: data.id,
+    serviceId: data.service_id,
+    serviceName: data.service_name,
+    price: data.price,
+    customerName: data.customer_name,
+    customerEmail: data.customer_email,
+    customerPhone: data.customer_phone,
+    petName: data.pet_name,
+    petType: data.pet_type,
+    date: data.date,
+    time: data.time,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    message: data.message,
+    status: data.status,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+// Функция для преобразования данных приложения (camelCase) в формат Supabase (snake_case)
+function transformBookingToSupabase(booking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>): BookingInsert {
+  return {
+    service_id: booking.serviceId,
+    service_name: booking.serviceName,
+    price: booking.price,
+    customer_name: booking.customerName,
+    customer_email: booking.customerEmail,
+    customer_phone: booking.customerPhone,
+    pet_name: booking.petName,
+    pet_type: booking.petType,
+    date: booking.date,
+    time: booking.time,
+    start_date: booking.startDate,
+    end_date: booking.endDate,
+    message: booking.message,
+    status: booking.status || 'pending',
+    created_at: new Date().toISOString(),
+  };
+}
+
+// Async thunk для добавления бронирования в Supabase
+export const addBookingToSupabase = createAsyncThunk(
+  'bookings/addBookingToSupabase',
+  async (booking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const docRef = await addDoc(collection(db, 'bookings'), {
-        ...booking,
-        createdAt: new Date().toISOString()
-      });
+      console.log('📝 Сохранение бронирования в Supabase:', booking);
       
-      return {
-        id: docRef.id,
-        ...booking,
-        createdAt: new Date().toISOString()
-      };
-    } catch (error) {
-      throw new Error('Failed to add booking to Firebase');
+      const bookingData = transformBookingToSupabase(booking);
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert([bookingData])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Ошибка Supabase:', error);
+        throw new Error(error.message || 'Failed to add booking to Supabase');
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log('✅ Бронирование успешно сохранено! ID:', data.id);
+      
+      const transformedBooking = transformBookingFromSupabase(data);
+      return transformedBooking;
+    } catch (error: any) {
+      console.error('❌ Ошибка при сохранении бронирования:', error);
+      const errorMessage = error?.message || 'Failed to add booking to Supabase';
+      throw new Error(errorMessage);
     }
   }
 );
 
-// Async thunk для загрузки бронирований из Firebase
-export const fetchBookingsFromFirebase = createAsyncThunk(
-  'bookings/fetchBookingsFromFirebase',
+// Async thunk для загрузки бронирований из Supabase
+export const fetchBookingsFromSupabase = createAsyncThunk(
+  'bookings/fetchBookingsFromSupabase',
   async () => {
     try {
-      const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      const bookings: Booking[] = [];
-      querySnapshot.forEach((doc) => {
-        bookings.push({
-          id: doc.id,
-          ...doc.data()
-        } as Booking);
-      });
+      if (error) {
+        console.error('❌ Ошибка Supabase:', error);
+        throw new Error(error.message || 'Failed to fetch bookings from Supabase');
+      }
+      
+      if (!data) {
+        return [];
+      }
+      
+      const bookings: Booking[] = data.map(transformBookingFromSupabase);
+      console.log(`✅ Загружено бронирований: ${bookings.length}`);
       
       return bookings;
-    } catch (error) {
-      throw new Error('Failed to fetch bookings from Firebase');
+    } catch (error: any) {
+      console.error('❌ Ошибка при загрузке бронирований:', error);
+      throw new Error(error?.message || 'Failed to fetch bookings from Supabase');
     }
   }
 );
 
-// Async thunk для удаления бронирования из Firebase
-export const deleteBookingFromFirebase = createAsyncThunk(
-  'bookings/deleteBookingFromFirebase',
+// Async thunk для удаления бронирования из Supabase
+export const deleteBookingFromSupabase = createAsyncThunk(
+  'bookings/deleteBookingFromSupabase',
   async (bookingId: string) => {
     try {
-      await deleteDoc(doc(db, 'bookings', bookingId));
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', bookingId);
+      
+      if (error) {
+        console.error('❌ Ошибка Supabase:', error);
+        throw new Error(error.message || 'Failed to delete booking from Supabase');
+      }
+      
+      console.log('✅ Бронирование удалено! ID:', bookingId);
       return bookingId;
-    } catch (error) {
-      throw new Error('Failed to delete booking from Firebase');
+    } catch (error: any) {
+      console.error('❌ Ошибка при удалении бронирования:', error);
+      throw new Error(error?.message || 'Failed to delete booking from Supabase');
     }
   }
 );
 
-// Async thunk для обновления статуса бронирования в Firebase
-export const updateBookingStatusInFirebase = createAsyncThunk(
-  'bookings/updateBookingStatusInFirebase',
+// Async thunk для обновления статуса бронирования в Supabase
+export const updateBookingStatusInSupabase = createAsyncThunk(
+  'bookings/updateBookingStatusInSupabase',
   async ({ bookingId, status }: { bookingId: string; status: 'pending' | 'confirmed' | 'cancelled' }) => {
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), { status });
+      if (!bookingId) {
+        throw new Error('Booking ID is required');
+      }
+      
+      // Проверяем, существует ли бронирование
+      const { data: existingBooking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('id', bookingId)
+        .single();
+      
+      if (fetchError || !existingBooking) {
+        throw new Error(`Booking with ID ${bookingId} not found in Supabase. It may have been deleted.`);
+      }
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Ошибка Supabase:', error);
+        throw new Error(error.message || 'Failed to update booking status in Supabase');
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log('✅ Статус бронирования обновлен! ID:', bookingId, 'Status:', status);
+      
       return { bookingId, status };
-    } catch (error) {
-      throw new Error('Failed to update booking status in Firebase');
+    } catch (error: any) {
+      console.error('❌ Ошибка при обновлении статуса бронирования:', error);
+      const errorMessage = error?.message || 'Failed to update booking status in Supabase';
+      throw new Error(errorMessage);
     }
   }
 );
@@ -129,58 +247,58 @@ const bookingsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Add booking to Firebase
-      .addCase(addBookingToFirebase.pending, (state) => {
+      // Add booking to Supabase
+      .addCase(addBookingToSupabase.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addBookingToFirebase.fulfilled, (state, action) => {
+      .addCase(addBookingToSupabase.fulfilled, (state, action) => {
         state.loading = false;
         state.bookings.push(action.payload);
       })
-      .addCase(addBookingToFirebase.rejected, (state, action) => {
+      .addCase(addBookingToSupabase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to add booking';
       })
-      // Fetch bookings from Firebase
-      .addCase(fetchBookingsFromFirebase.pending, (state) => {
+      // Fetch bookings from Supabase
+      .addCase(fetchBookingsFromSupabase.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBookingsFromFirebase.fulfilled, (state, action) => {
+      .addCase(fetchBookingsFromSupabase.fulfilled, (state, action) => {
         state.loading = false;
         state.bookings = action.payload;
       })
-      .addCase(fetchBookingsFromFirebase.rejected, (state, action) => {
+      .addCase(fetchBookingsFromSupabase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch bookings';
       })
-      // Delete booking from Firebase
-      .addCase(deleteBookingFromFirebase.pending, (state) => {
+      // Delete booking from Supabase
+      .addCase(deleteBookingFromSupabase.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteBookingFromFirebase.fulfilled, (state, action) => {
+      .addCase(deleteBookingFromSupabase.fulfilled, (state, action) => {
         state.loading = false;
         state.bookings = state.bookings.filter(booking => booking.id !== action.payload);
       })
-      .addCase(deleteBookingFromFirebase.rejected, (state, action) => {
+      .addCase(deleteBookingFromSupabase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to delete booking';
       })
-      // Update booking status in Firebase
-      .addCase(updateBookingStatusInFirebase.pending, (state) => {
+      // Update booking status in Supabase
+      .addCase(updateBookingStatusInSupabase.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateBookingStatusInFirebase.fulfilled, (state, action) => {
+      .addCase(updateBookingStatusInSupabase.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.bookings.findIndex(booking => booking.id === action.payload.bookingId);
         if (index !== -1) {
           state.bookings[index].status = action.payload.status;
         }
       })
-      .addCase(updateBookingStatusInFirebase.rejected, (state, action) => {
+      .addCase(updateBookingStatusInSupabase.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to update booking status';
       });
