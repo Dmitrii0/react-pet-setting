@@ -92,14 +92,20 @@ const ImageContainer = styled.div`
   position: relative;
   width: 100%;
   max-width: 500px;
-  height: 500px;
+  height: auto;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 4rem;
-  color: white;
+  overflow: hidden;
+  
+  img {
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+    object-fit: contain;
+  }
 `;
 
 const HomePage: React.FC = () => {
@@ -129,7 +135,16 @@ const HomePage: React.FC = () => {
           
           <HeroImage>
             <ImageContainer>
-              🐾
+              <img 
+                src={`${process.env.PUBLIC_URL || ''}/assets/we-pet-care.png`}
+                alt="We Pet Care"
+                onError={(e) => {
+                  console.error('Failed to load image:', e);
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.innerHTML = '🐾';
+                }}
+              />
             </ImageContainer>
           </HeroImage>
         </HeroContainer>
