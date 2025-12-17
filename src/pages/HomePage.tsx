@@ -136,7 +136,7 @@ const HomePage: React.FC = () => {
           <HeroImage>
             <ImageContainer>
               <img 
-                src={`${process.env.PUBLIC_URL || ''}/assets/we-pet-care.png`}
+                src="/assets/we-pet-care.png"
                 alt="We Pet Care"
                 onError={(e) => {
                   console.error('Failed to load image:', e);
