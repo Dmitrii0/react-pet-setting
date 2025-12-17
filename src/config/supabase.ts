@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '../types/supabase';
 
 // Получите эти значения из Supabase Dashboard → Settings → API
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || '';
@@ -12,13 +13,13 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 // Создаем клиент только если переменные окружения установлены
 // Это предотвратит ошибки при запуске без настроенных переменных
-let supabaseClient: ReturnType<typeof createClient> | null = null;
+let supabaseClient: SupabaseClient<Database>;
 
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-  supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 } else {
   // Создаем заглушку, чтобы приложение не падало
-  supabaseClient = createClient(
+  supabaseClient = createClient<Database>(
     'https://placeholder.supabase.co',
     'placeholder-key'
   );

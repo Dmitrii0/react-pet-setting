@@ -90,7 +90,7 @@ export const addBookingToSupabase = createAsyncThunk(
       
       const { data, error } = await supabase
         .from('bookings')
-        .insert([bookingData])
+        .insert([bookingData] as any)
         .select()
         .single();
       
@@ -103,9 +103,10 @@ export const addBookingToSupabase = createAsyncThunk(
         throw new Error('No data returned from Supabase');
       }
       
-      console.log('✅ Бронирование успешно сохранено! ID:', data.id);
+      const bookingRow = data as any;
+      console.log('✅ Бронирование успешно сохранено! ID:', bookingRow.id);
       
-      const transformedBooking = transformBookingFromSupabase(data);
+      const transformedBooking = transformBookingFromSupabase(bookingRow);
       return transformedBooking;
     } catch (error: any) {
       console.error('❌ Ошибка при сохранении бронирования:', error);
@@ -189,12 +190,15 @@ export const updateBookingStatusInSupabase = createAsyncThunk(
         throw new Error(`Booking with ID ${bookingId} not found in Supabase. It may have been deleted.`);
       }
       
-      const { data, error } = await supabase
-        .from('bookings')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
+      const updateData = { 
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Используем any для обхода проблемы с типами Supabase
+      const { data, error } = await (supabase
+        .from('bookings') as any)
+        .update(updateData)
         .eq('id', bookingId)
         .select()
         .single();
