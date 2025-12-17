@@ -189,9 +189,13 @@ const AboutPage: React.FC = () => {
           
          <VideoContainer>
   <img 
-    src="/assets/we-pet-care.png"  
+    src={`${process.env.PUBLIC_URL || ''}/assets/we-pet-care.png`}
     alt="Tervetuloa tutustumaan meihin!"
     style={{ width: '100%', height: 'auto', borderRadius: '20px' }}
+    onError={(e) => {
+      console.error('Failed to load image:', e);
+      (e.target as HTMLImageElement).style.display = 'none';
+    }}
   />
   <div style={{ textAlign: 'center', marginTop: '1rem', color: 'white' }}>
     <p>🎥 Tervetuloa tutustumaan meihin!</p>
