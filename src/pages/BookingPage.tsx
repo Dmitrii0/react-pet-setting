@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { addBookingToSupabase } from '../store/slices/bookingsSlice';
-import { isRejected } from '@reduxjs/toolkit';
 import { setSelectedService } from '../store/slices/servicesSlice';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';

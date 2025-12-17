@@ -187,20 +187,19 @@ const AboutPage: React.FC = () => {
             </div>
           </FoundersContent>
           
-          <VideoContainer>
-            <video 
-              controls 
-              style={{ width: '100%', height: 'auto', borderRadius: '20px' }}
-              poster="/api/placeholder/500/300"
-            >
-              <source src="/tieto_meistä.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div style={{ textAlign: 'center', marginTop: '1rem', color: 'white' }}>
-              <p>🎥 Tervetuloa tutustumaan meihin!</p>
-              <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Valeria & Natasha - We Pet Care</p>
-            </div>
-          </VideoContainer>
+         <VideoContainer>
+  <img 
+    src="/assets/we-pet-care.png"  
+    alt="Tervetuloa tutustumaan meihin!"
+    style={{ width: '100%', height: 'auto', borderRadius: '20px' }}
+  />
+  <div style={{ textAlign: 'center', marginTop: '1rem', color: 'white' }}>
+    <p>🎥 Tervetuloa tutustumaan meihin!</p>
+    <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>Valeria & Natasha - We Pet Care</p>
+  </div>
+</VideoContainer>
+
+
         </FoundersSection>
         
         <ValuesSection>

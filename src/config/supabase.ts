@@ -10,9 +10,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error('For Vercel: Go to Project Settings → Environment Variables');
 }
 
-// Создаем клиент даже с пустыми значениями, чтобы приложение не падало
-// Но запросы будут возвращать ошибки до настройки переменных окружения
-export const supabase = createClient(
-  SUPABASE_URL || 'https://placeholder.supabase.co',
-  SUPABASE_ANON_KEY || 'placeholder-key'
-);
+// Создаем клиент только если переменные окружения установлены
+// Это предотвратит ошибки при запуске без настроенных переменных
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else {
+  // Создаем заглушку, чтобы приложение не падало
+  supabaseClient = createClient(
+    'https://placeholder.supabase.co',
+    'placeholder-key'
+  );
+}
+
+export const supabase = supabaseClient;

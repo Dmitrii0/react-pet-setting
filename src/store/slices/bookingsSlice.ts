@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { supabase } from '../../config/supabase';
-import { BookingInsert, BookingUpdate } from '../../types/supabase';
+import { BookingInsert } from '../../types/supabase';
 
 // Интерфейс для работы в приложении (camelCase)
 export interface Booking {
