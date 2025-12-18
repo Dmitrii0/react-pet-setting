@@ -57,6 +57,7 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
   padding: 0;
   
   @media (max-width: 768px) {
+    display: ${props => props.isOpen ? 'flex' : 'none'};
     position: fixed;
     top: 70px;
     left: 0;
