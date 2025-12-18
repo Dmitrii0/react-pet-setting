@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { addBookingToSupabase } from '../store/slices/bookingsSlice';
-import { setSelectedService } from '../store/slices/servicesSlice';
+import { setSelectedService, fetchServices } from '../store/slices/servicesSlice';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { sendBookingNotification } from '../services/emailService';
@@ -134,6 +134,13 @@ const BookingPage: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\+?\d{7,15}$/;
+
+  // Загружаем услуги при монтировании компонента
+  useEffect(() => {
+    if (services.length === 0) {
+      dispatch(fetchServices() as any);
+    }
+  }, [dispatch, services.length]);
 
   const [formData, setFormData] = useState({
     name: '',
