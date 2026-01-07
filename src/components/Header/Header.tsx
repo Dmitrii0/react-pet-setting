@@ -7,14 +7,17 @@ const Nav = styled.nav`
   top: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   backdrop-filter: blur(10px);
   z-index: 1000;
   padding: 1rem 0;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   
   @media (min-width: 769px) {
     &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+      
       .nav-links {
         opacity: 1;
         visibility: visible;
@@ -85,7 +88,8 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
     top: 70px;
     left: 0;
     right: 0;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     flex-direction: column;
     gap: 0;
     padding: 0;
