@@ -12,6 +12,16 @@ const Nav = styled.nav`
   z-index: 1000;
   padding: 1rem 0;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  
+  @media (min-width: 769px) {
+    &:hover {
+      .nav-links {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+    }
+  }
 `;
 
 const NavContainer = styled.div`
@@ -56,6 +66,19 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
   margin: 0;
   padding: 0;
   
+  @media (min-width: 769px) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    
+    &:hover {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+  }
+  
   @media (max-width: 768px) {
     display: ${props => props.isOpen ? 'flex' : 'none'};
     position: fixed;
@@ -75,6 +98,7 @@ const NavLinks = styled.ul<{ isOpen: boolean }>`
     pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
     transition: opacity 0.3s ease, max-height 0.3s ease;
     z-index: 999;
+    visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
     
     li {
       border-bottom: 1px solid #f0f0f0;
@@ -162,7 +186,7 @@ const Header: React.FC = () => {
           <i className={isMenuOpen ? 'ri-close-line' : 'ri-menu-line'}></i>
         </MenuButton>
         
-        <NavLinks isOpen={isMenuOpen}>
+        <NavLinks isOpen={isMenuOpen} className="nav-links">
           <li><NavLink to="/" onClick={closeMenu}>Etusivu</NavLink></li>
           <li><NavLink to="/services" onClick={closeMenu}>Palvelut</NavLink></li>
           <li><NavLink to="/booking" onClick={closeMenu}>Varaus</NavLink></li>
