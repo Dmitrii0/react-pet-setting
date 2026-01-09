@@ -209,7 +209,7 @@ const Footer: React.FC = () => {
         
         <FooterBottom>
           <div className="bottom-content">
-            <p>&copy; 2024 We Pet Care. Kaikki oikeudet pidätetään.</p>
+            <p>&copy; 2026 We Pet Care. Kaikki oikeudet pidätetään.</p>
             <div className="footer-links">
               <a href="#">Tietosuojakäytäntö</a>
               <a href="#">Käyttöehdot</a>
