@@ -23,6 +23,11 @@ const Nav = styled.nav`
         visibility: visible;
         pointer-events: auto;
       }
+      
+      .logo {
+        opacity: 1;
+        visibility: visible;
+      }
     }
   }
 `;
@@ -48,9 +53,22 @@ const Logo = styled(Link)`
   text-decoration: none;
   z-index: 1001;
   position: relative;
+  transition: opacity 0.3s ease, visibility 0.3s ease, color 0.3s ease;
   
   &:hover {
     color: #667eea;
+  }
+  
+  @media (min-width: 769px) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    
+    &:hover {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
   }
   
   @media (max-width: 768px) {
@@ -59,6 +77,9 @@ const Logo = styled(Link)`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 `;
 
@@ -177,7 +198,7 @@ const Header: React.FC = () => {
   return (
     <Nav>
       <NavContainer>
-        <Logo to="/" onClick={closeMenu}>
+        <Logo to="/" onClick={closeMenu} className="logo">
           We Pet Care Helsinki Espoo Vantaa
         </Logo>
         
